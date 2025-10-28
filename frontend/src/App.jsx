@@ -59,15 +59,24 @@ export default function App() {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
 
-  // ✅ Fetch district list
+  // ✅ Fetch district list (only Maharashtra)
   useEffect(() => {
     fetch("http://localhost:3000/api/v1/districts")
       .then((r) => r.json())
-      .then((data) => setDistricts(data))
+      .then((data) => {
+        const maharashtraDistricts = data
+          .filter((d) => d.state?.toUpperCase() === "MAHARASHTRA")
+          .map((d) => d.district.toUpperCase());
+
+        // Remove duplicates and sort alphabetically
+        const uniqueSorted = Array.from(new Set(maharashtraDistricts)).sort();
+
+        setDistricts(uniqueSorted);
+      })
       .catch((err) => console.error("❌ District fetch error:", err));
   }, []);
 
-  // ✅ Fetch district data + history when selected
+  // ✅ Fetch performance & history when district selected
   useEffect(() => {
     if (!selectedDistrict) return;
 
@@ -127,7 +136,9 @@ export default function App() {
 
       {/* District Selector */}
       <section>
-        <label style={{ fontSize: 18, fontWeight: "600" }}>जिला चुनें:</label>
+        <label style={{ fontSize: 18, fontWeight: "600" }}>
+          🗺️ महाराष्ट्र जिला चुनें:
+        </label>
         <select
           value={selectedDistrict}
           onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -140,9 +151,9 @@ export default function App() {
           }}
         >
           <option value="">— Select District —</option>
-          {districts.map((d) => (
-            <option key={d.district} value={d.district}>
-              {d.district}
+          {districts.map((district) => (
+            <option key={district} value={district}>
+              {district}
             </option>
           ))}
         </select>
