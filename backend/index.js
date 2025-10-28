@@ -11,13 +11,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ PostgreSQL connection
+/**
+ * ✅ PostgreSQL connection (Render-compatible with SSL)
+ */
 const pool = new Pool({
   user: process.env.PGUSER,
   host: process.env.PGHOST,
   database: process.env.PGDATABASE,
   password: process.env.PGPASSWORD,
   port: process.env.PGPORT,
+  ssl: {
+    require: true,
+    rejectUnauthorized: false, // required for Render SSL
+  },
 });
 
 pool
@@ -91,11 +97,9 @@ app.get("/api/v1/performance", async (req, res) => {
     district = district.trim().toUpperCase();
 
     const records = await fetchMGNREGAData(1000);
-
     if (!records.length)
       return res.status(404).json({ message: "No records found in dataset" });
 
-    // Find matching district record
     const match = records.find(
       (r) =>
         r.state_name?.toUpperCase() === state &&
@@ -111,8 +115,7 @@ app.get("/api/v1/performance", async (req, res) => {
       fin_year: match.fin_year || "N/A",
       month: match.month || "N/A",
       approved_labour_budget: match.Approved_Labour_Budget || "N/A",
-      average_wage_rate:
-        match.Average_Wage_rate_per_day_per_person || "N/A",
+      average_wage_rate: match.Average_Wage_rate_per_day_per_person || "N/A",
       average_days_employment:
         match.Average_days_of_employment_provided_per_Household || "N/A",
       total_active_jobcards: match.Total_No_of_Active_Job_Cards || "N/A",
