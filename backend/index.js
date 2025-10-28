@@ -12,24 +12,35 @@ app.use(cors());
 app.use(express.json());
 
 /**
- * ✅ PostgreSQL connection (Render-compatible with SSL)
+ * ✅ PostgreSQL connection (auto-detects environment)
  */
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
-  ssl: {
-    require: true,
-    rejectUnauthorized: false, // required for Render SSL
-  },
-});
+const isProduction = process.env.NODE_ENV === "production";
+
+const pool = new Pool(
+  isProduction
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      }
+    : {
+        user: process.env.PGUSER,
+        host: process.env.PGHOST,
+        database: process.env.PGDATABASE,
+        password: process.env.PGPASSWORD,
+        port: process.env.PGPORT,
+      }
+);
 
 pool
   .connect()
-  .then(() => console.log("🟢 Connected to PostgreSQL successfully"))
-  .catch((err) => console.error("🔴 PostgreSQL connection error:", err.message));
+  .then(() =>
+    console.log(
+      `🟢 Connected to PostgreSQL (${isProduction ? "Render Cloud" : "Local Dev"})`
+    )
+  )
+  .catch((err) =>
+    console.error("🔴 PostgreSQL connection error:", err.message)
+  );
 
 const PORT = process.env.PORT || 3000;
 
