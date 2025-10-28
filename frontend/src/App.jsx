@@ -12,6 +12,11 @@ import {
   Bar,
 } from "recharts";
 
+// 🌐 Base API URL (from environment or fallback to Render URL)
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://our-voice-rights-1.onrender.com";
+
 // 🌍 Auto-detect user's district using geolocation + OpenStreetMap
 async function detectUserDistrict(setSelectedDistrict) {
   if (!navigator.geolocation) {
@@ -58,44 +63,53 @@ export default function App() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // ✅ Fetch district list (only Maharashtra)
+  // ✅ Fetch district list
   useEffect(() => {
-    fetch("http://localhost:3000/api/v1/districts")
+    fetch(`${API_BASE}/api/v1/districts`)
       .then((r) => r.json())
       .then((data) => {
-        const maharashtraDistricts = data
-          .filter((d) => d.state?.toUpperCase() === "MAHARASHTRA")
-          .map((d) => d.district.toUpperCase());
-
-        // Remove duplicates and sort alphabetically
-        const uniqueSorted = Array.from(new Set(maharashtraDistricts)).sort();
-
-        setDistricts(uniqueSorted);
+        setDistricts(data);
+        setLoading(false);
       })
-      .catch((err) => console.error("❌ District fetch error:", err));
+      .catch((err) => {
+        console.error("❌ District fetch error:", err);
+        setError("डेटा लोड करने में समस्या आ रही है।");
+        setLoading(false);
+      });
   }, []);
 
-  // ✅ Fetch performance & history when district selected
+  // ✅ Fetch district data + history when selected
   useEffect(() => {
     if (!selectedDistrict) return;
 
     const state = "MAHARASHTRA";
     const district = selectedDistrict;
 
+    setSummary(null);
+    setHistory([]);
+    setLoading(true);
+
     Promise.all([
-      fetch(
-        `http://localhost:3000/api/v1/performance?state=${state}&district=${district}`
-      ).then((r) => r.json()),
-      fetch(
-        `http://localhost:3000/api/v1/history?state=${state}&district=${district}`
-      ).then((r) => r.json()),
+      fetch(`${API_BASE}/api/v1/performance?state=${state}&district=${district}`).then((r) =>
+        r.json()
+      ),
+      fetch(`${API_BASE}/api/v1/history?state=${state}&district=${district}`).then((r) =>
+        r.json()
+      ),
     ])
       .then(([perf, hist]) => {
         setSummary(perf);
         setHistory(hist.data || []);
+        setLoading(false);
       })
-      .catch((err) => console.error("❌ Data fetch error:", err));
+      .catch((err) => {
+        console.error("❌ Data fetch error:", err);
+        setError("जिला डेटा प्राप्त करने में समस्या हुई।");
+        setLoading(false);
+      });
   }, [selectedDistrict]);
 
   return (
@@ -136,27 +150,38 @@ export default function App() {
 
       {/* District Selector */}
       <section>
-        <label style={{ fontSize: 18, fontWeight: "600" }}>
-          🗺️ महाराष्ट्र जिला चुनें:
-        </label>
-        <select
-          value={selectedDistrict}
-          onChange={(e) => setSelectedDistrict(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            borderRadius: 8,
-            marginTop: 8,
-            fontSize: 16,
-          }}
-        >
-          <option value="">— Select District —</option>
-          {districts.map((district) => (
-            <option key={district} value={district}>
-              {district}
-            </option>
-          ))}
-        </select>
+        <label style={{ fontSize: 18, fontWeight: "600" }}>जिला चुनें:</label>
+        {loading ? (
+          <p style={{ textAlign: "center", color: "#777", marginTop: 10 }}>
+            ⏳ जिलों की सूची लोड हो रही है...
+          </p>
+        ) : error ? (
+          <p style={{ textAlign: "center", color: "red" }}>{error}</p>
+        ) : (
+          <div style={{ width: "100%", overflow: "hidden" }}>
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 8,
+                marginTop: 8,
+                fontSize: 16,
+                backgroundColor: "#fff",
+                border: "1px solid #ccc",
+                appearance: "none",
+              }}
+            >
+              <option value="">— Select District —</option>
+              {districts.map((d) => (
+                <option key={d.district} value={d.district}>
+                  {d.district}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </section>
 
       {/* Summary cards */}

@@ -3,6 +3,7 @@ node_modules/
 
 # Ignore environment variables
 .env
+.env.local
 backend/.env
 frontend/.env
 
