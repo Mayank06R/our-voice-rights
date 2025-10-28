@@ -74,13 +74,11 @@ MGNREGA_RESOURCE_ID=ee03643a-ee4c-48c2-ac30-9f2ff26ab722
 
 🖼️ Screenshots
 Feature	Preview
-🌍 Home Page	
+<img width="1891" height="761" alt="image" src="https://github.com/user-attachments/assets/a3bf6285-3b81-461d-b5b9-0a2b599d3b68" />
 
-📈 Chart Visualization	
 
-📍 Auto-detect Feature	
+<img width="887" height="965" alt="image" src="https://github.com/user-attachments/assets/59dbfe72-7c20-4dd4-a334-c937e79c2f9b" />
 
-(Replace the placeholders with real screenshots before submission.)
 
 📊 Data Accuracy Disclaimer
 
@@ -106,9 +104,9 @@ Users are advised to refer to the Ministry of Rural Development portal for offic
 👨‍💻 Developer
 
 Mayank Rose Xalxo
-📍 Vadodara, India
+📍 Sohagpur, India
 💻 MCA Student | Full-Stack Developer | IoT & Web Enthusiast
-✉️ mayankrose@gmail.com
+✉️ mayankxrose@gmail.com
 
 🏁 License
 
