@@ -5,16 +5,17 @@ import pkg from "pg";
 dotenv.config();
 const { Pool } = pkg;
 
-// ✅ PostgreSQL connection (auto handles Render or local)
+// ✅ PostgreSQL connection (works both locally & on Render)
 const pool = new Pool({
   user: process.env.PGUSER,
   host: process.env.PGHOST,
   database: process.env.PGDATABASE,
   password: process.env.PGPASSWORD,
   port: process.env.PGPORT,
-  ssl: process.env.PGHOST.includes("render.com")
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { require: true, rejectUnauthorized: false }
+      : false,
 });
 
 async function ingestMGNREGA() {
@@ -32,55 +33,40 @@ async function ingestMGNREGA() {
       return;
     }
 
-    console.log(`📊 Total records received: ${data.records.length}`);
-    console.log("🧾 Example record:", data.records[0]);
-
-    // Filter for Maharashtra data only
     const mahaRecords = data.records.filter(
       (r) => r.state_name?.toUpperCase() === "MAHARASHTRA"
     );
+
     console.log(`📍 Found ${mahaRecords.length} records for Maharashtra.`);
 
     for (const r of mahaRecords) {
-      const query = `
-        INSERT INTO mgnrega_monthly (
-          state_name, district_name, fin_year, month,
+      await pool.query(
+        `INSERT INTO mgnrega_monthly (
+          fin_year, month, state_name, district_name,
           average_wage_rate, average_days_employment,
           total_expenditure, wages_paid, women_persondays,
           sc_persondays, st_persondays
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-        ON CONFLICT (state_name, district_name, fin_year, month)
-        DO UPDATE SET
-          average_wage_rate = EXCLUDED.average_wage_rate,
-          average_days_employment = EXCLUDED.average_days_employment,
-          total_expenditure = EXCLUDED.total_expenditure,
-          wages_paid = EXCLUDED.wages_paid,
-          women_persondays = EXCLUDED.women_persondays,
-          sc_persondays = EXCLUDED.sc_persondays,
-          st_persondays = EXCLUDED.st_persondays;
-      `;
-
-      const values = [
-        r.state_name,
-        r.district_name,
-        r.fin_year,
-        r.month,
-        parseFloat(r.Average_Wage_rate_per_day_per_person || 0),
-        parseFloat(r.Average_days_of_employment_provided_per_Household || 0),
-        parseFloat(r.Total_Exp || 0),
-        parseFloat(r.Wages || 0),
-        parseFloat(r.Women_Persondays || 0),
-        parseFloat(r.SC_persondays || 0),
-        parseFloat(r.ST_persondays || 0),
-      ];
-
-      await pool.query(query, values);
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ON CONFLICT DO NOTHING`,
+        [
+          r.fin_year,
+          r.month,
+          r.state_name,
+          r.district_name,
+          r.Average_Wage_rate_per_day_per_person || 0,
+          r.Average_days_of_employment_provided_per_Household || 0,
+          r.Total_Exp || 0,
+          r.Wages || 0,
+          r.Women_Persondays || 0,
+          r.SC_persondays || 0,
+          r.ST_persondays || 0,
+        ]
+      );
     }
 
-    console.log(`✅ Inserted/Updated ${mahaRecords.length} Maharashtra records.`);
+    console.log(`✅ Inserted ${mahaRecords.length} Maharashtra records successfully!`);
   } catch (err) {
-    console.error("❌ Ingest error:", err.message);
+    console.error("❌ Ingest error:", err);
   } finally {
     await pool.end();
   }
