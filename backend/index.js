@@ -68,23 +68,26 @@ async function fetchMGNREGAData(limit = 1000) {
 }
 
 /**
- * ✅ Route: Get All Districts
+ * ✅ Route: Get All Districts (Maharashtra Only)
  */
 app.get("/api/v1/districts", async (req, res) => {
   try {
-    const records = await fetchMGNREGAData(500);
+    const records = await fetchMGNREGAData(1000);
     if (!records.length)
       return res.status(404).json({ message: "No district data found" });
 
-    const districts = records.map((r) => ({
-      state: r.state_name,
-      district: r.district_name,
-    }));
+    // ✅ Filter only Maharashtra districts
+    const mahaDistricts = records
+      .filter((r) => r.state_name?.toUpperCase() === "MAHARASHTRA")
+      .map((r) => ({
+        state: r.state_name,
+        district: r.district_name,
+      }));
 
-    // Remove duplicates
+    // ✅ Remove duplicates and sort alphabetically
     const uniqueDistricts = Array.from(
-      new Map(districts.map((d) => [d.district, d])).values()
-    );
+      new Map(mahaDistricts.map((d) => [d.district, d])).values()
+    ).sort((a, b) => a.district.localeCompare(b.district));
 
     res.json(uniqueDistricts);
   } catch (err) {
