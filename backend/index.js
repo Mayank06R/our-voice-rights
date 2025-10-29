@@ -208,3 +208,19 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
+
+import cron from "node-cron";
+import { exec } from "child_process";
+
+// Runs once a day at 8 AM IST
+cron.schedule("30 2 * * *", () => {
+  console.log("⚙️ Running daily data ingestion...");
+  exec("npm run ingest", (error, stdout, stderr) => {
+    if (error) {
+      console.error("❌ Ingest error:", error);
+      return;
+    }
+    console.log("✅ Ingest output:", stdout);
+    if (stderr) console.error(stderr);
+  });
+});
