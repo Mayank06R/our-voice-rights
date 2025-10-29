@@ -12,12 +12,12 @@ import {
   Bar,
 } from "recharts";
 
-// 🌐 Base API URL (from environment or fallback to Render URL)
+// ✅ Base API URL (auto-detected for Render or Local)
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://our-voice-rights-1.onrender.com";
+  "https://our-voice-rights.onrender.com";
 
-// 🌍 Auto-detect user's district using geolocation + OpenStreetMap
+// 🌍 Auto-detect user’s district using Geolocation + OpenStreetMap
 async function detectUserDistrict(setSelectedDistrict) {
   if (!navigator.geolocation) {
     alert("❌ आपका ब्राउज़र लोकेशन को सपोर्ट नहीं करता।");
@@ -66,10 +66,13 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Fetch district list
+  // ✅ Fetch District List
   useEffect(() => {
     fetch(`${API_BASE}/api/v1/districts`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load districts");
+        return r.json();
+      })
       .then((data) => {
         setDistricts(data);
         setLoading(false);
@@ -81,7 +84,7 @@ export default function App() {
       });
   }, []);
 
-  // ✅ Fetch district data + history when selected
+  // ✅ Fetch District Data + History
   useEffect(() => {
     if (!selectedDistrict) return;
 
@@ -118,8 +121,8 @@ export default function App() {
         fontFamily: "system-ui, sans-serif",
         background: "#f5f6fa",
         minHeight: "100vh",
-        padding: 20,
-        maxWidth: 960,
+        padding: "20px",
+        maxWidth: "960px",
         margin: "0 auto",
       }}
     >
@@ -184,7 +187,7 @@ export default function App() {
         )}
       </section>
 
-      {/* Summary cards */}
+      {/* Summary Cards */}
       {summary && (
         <section style={{ marginTop: 20 }}>
           <h2 style={{ color: "#2e7d32", marginBottom: 12 }}>
@@ -194,7 +197,7 @@ export default function App() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
               gap: 12,
             }}
           >
@@ -208,7 +211,7 @@ export default function App() {
         </section>
       )}
 
-      {/* Line and Bar Charts */}
+      {/* Charts Section */}
       {history.length > 0 && (
         <section style={{ marginTop: 40 }}>
           <h3 style={{ textAlign: "center", color: "#333" }}>
