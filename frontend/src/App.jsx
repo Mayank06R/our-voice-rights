@@ -12,12 +12,12 @@ import {
   Bar,
 } from "recharts";
 
-// ✅ Base API URL (auto-detected for Render or Local)
+// 🌐 Base API URL (Render backend)
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   "https://our-voice-rights.onrender.com";
 
-// 🌍 Auto-detect user’s district using Geolocation + OpenStreetMap
+// 🌍 Auto-detect user's district using geolocation + OpenStreetMap
 async function detectUserDistrict(setSelectedDistrict) {
   if (!navigator.geolocation) {
     alert("❌ आपका ब्राउज़र लोकेशन को सपोर्ट नहीं करता।");
@@ -60,21 +60,21 @@ async function detectUserDistrict(setSelectedDistrict) {
 
 export default function App() {
   const [districts, setDistricts] = useState([]);
+  const [filteredDistricts, setFilteredDistricts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Fetch District List
+  // ✅ Fetch Maharashtra districts
   useEffect(() => {
     fetch(`${API_BASE}/api/v1/districts`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load districts");
-        return r.json();
-      })
+      .then((r) => r.json())
       .then((data) => {
         setDistricts(data);
+        setFilteredDistricts(data);
         setLoading(false);
       })
       .catch((err) => {
@@ -84,7 +84,19 @@ export default function App() {
       });
   }, []);
 
-  // ✅ Fetch District Data + History
+  // 🔍 Filter districts dynamically
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredDistricts(districts);
+    } else {
+      const q = searchQuery.toLowerCase();
+      setFilteredDistricts(
+        districts.filter((d) => d.district.toLowerCase().includes(q))
+      );
+    }
+  }, [searchQuery, districts]);
+
+  // ✅ Fetch district performance + history
   useEffect(() => {
     if (!selectedDistrict) return;
 
@@ -96,11 +108,11 @@ export default function App() {
     setLoading(true);
 
     Promise.all([
-      fetch(`${API_BASE}/api/v1/performance?state=${state}&district=${district}`).then((r) =>
-        r.json()
+      fetch(`${API_BASE}/api/v1/performance?state=${state}&district=${district}`).then(
+        (r) => r.json()
       ),
-      fetch(`${API_BASE}/api/v1/history?state=${state}&district=${district}`).then((r) =>
-        r.json()
+      fetch(`${API_BASE}/api/v1/history?state=${state}&district=${district}`).then(
+        (r) => r.json()
       ),
     ])
       .then(([perf, hist]) => {
@@ -121,8 +133,8 @@ export default function App() {
         fontFamily: "system-ui, sans-serif",
         background: "#f5f6fa",
         minHeight: "100vh",
-        padding: "20px",
-        maxWidth: "960px",
+        padding: 20,
+        maxWidth: 960,
         margin: "0 auto",
       }}
     >
@@ -151,9 +163,27 @@ export default function App() {
         </button>
       </header>
 
-      {/* District Selector */}
+      {/* District Search + Dropdown */}
       <section>
         <label style={{ fontSize: 18, fontWeight: "600" }}>जिला चुनें:</label>
+
+        {/* Search Bar */}
+        <input
+          type="text"
+          placeholder="🔍 टाइप करके खोजें (जैसे पुणे, नागपुर...)"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 10,
+            marginTop: 8,
+            borderRadius: 8,
+            fontSize: 16,
+            border: "1px solid #ccc",
+          }}
+        />
+
+        {/* Dropdown */}
         {loading ? (
           <p style={{ textAlign: "center", color: "#777", marginTop: 10 }}>
             ⏳ जिलों की सूची लोड हो रही है...
@@ -161,33 +191,30 @@ export default function App() {
         ) : error ? (
           <p style={{ textAlign: "center", color: "red" }}>{error}</p>
         ) : (
-          <div style={{ width: "100%", overflow: "hidden" }}>
-            <select
-              value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                marginTop: 8,
-                fontSize: 16,
-                backgroundColor: "#fff",
-                border: "1px solid #ccc",
-                appearance: "none",
-              }}
-            >
-              <option value="">— Select District —</option>
-              {districts.map((d) => (
-                <option key={d.district} value={d.district}>
-                  {d.district}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedDistrict}
+            onChange={(e) => setSelectedDistrict(e.target.value)}
+            style={{
+              width: "100%",
+              padding: 10,
+              borderRadius: 8,
+              marginTop: 10,
+              fontSize: 16,
+              backgroundColor: "#fff",
+              border: "1px solid #ccc",
+            }}
+          >
+            <option value="">— Select District —</option>
+            {filteredDistricts.map((d) => (
+              <option key={d.district} value={d.district}>
+                {d.district}
+              </option>
+            ))}
+          </select>
         )}
       </section>
 
-      {/* Summary Cards */}
+      {/* Summary cards */}
       {summary && (
         <section style={{ marginTop: 20 }}>
           <h2 style={{ color: "#2e7d32", marginBottom: 12 }}>
@@ -197,7 +224,7 @@ export default function App() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 12,
             }}
           >
@@ -211,7 +238,7 @@ export default function App() {
         </section>
       )}
 
-      {/* Charts Section */}
+      {/* Charts */}
       {history.length > 0 && (
         <section style={{ marginTop: 40 }}>
           <h3 style={{ textAlign: "center", color: "#333" }}>
@@ -279,7 +306,7 @@ export default function App() {
   );
 }
 
-// 📦 Reusable Card Component
+// 📦 Reusable InfoCard
 function InfoCard({ title, value }) {
   return (
     <div
